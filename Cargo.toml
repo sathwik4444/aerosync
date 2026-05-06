@@ -1,0 +1,24 @@
+[package]
+name = "aero-sync"
+version = "1.0.0"
+edition = "2021"
+authors = ["aero"]
+description = "Zero-Wattage Oklab RGB Screen Synchronization for ASUS TUF Laptops"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+zbus = "4.4"
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+nvml-wrapper = "0.10.0"
+lazy_static = "1.4"
+libc = "0.2"
+
+# RGB Engine Dependencies
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "raw_handle", "screencast"] }
+gstreamer = "0.23"
+gstreamer-app = "0.23"
+glib = "0.20"
+palette = "0.7"
+futures-util = "0.3"

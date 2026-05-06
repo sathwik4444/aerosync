@@ -1,0 +1,13 @@
+# --- 📦 RUST TRASH ---
+/target
+Cargo.lock
+
+# --- 🧪 TEMP DATA ---
+*.log
+/tmp/
+.DS_Store
+
+# --- 🛡️ SECURITY ---
+*.env
+*.token
+/tmp/aero_sync_token
