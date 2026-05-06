@@ -1,32 +1,45 @@
-# 🏛️ Aero-Sync: The Immortal RGB Engine
+# Aero-Sync 🏎️🛡️
 
-**Aero-Sync** is a high-performance, standalone RGB synchronization engine for ASUS TUF Gaming laptops running Linux. 
+**Sovereign RGB Synchronization for ASUS TUF/ROG Laptops.**
 
-Built with **Rust**, it utilizes the most advanced perceptual color math available today (**Oklab**) combined with **Zero-Wattage** optimizations to provide a visually stunning and energy-efficient experience.
+Aero-Sync is a high-performance, zero-wattage background engine that synchronizes your ASUS keyboard lighting with your screen colors in real-time. Built in Rust with a GStreamer/VA-API pipeline for ultra-low latency.
 
-## ✨ Key Features
-
-*   **🧪 Oklab Perceptual Math**: Colors match what your eyes see, not just raw pixel averages.
-*   **🏎️ Zero-Wattage LUT**: Uses a pre-computed sRGB Lookup Table to eliminate heavy CPU calculations in the pixel loop.
-*   **🧪 DMA-Stealth Architecture**: Zero-copy screen capture via PipeWire and DMA-BUF (Wayland native).
-*   **🕊️ Silk-Smooth Smoothing**: High-frequency exponential smoothing for fluid color transitions.
-*   **🛡️ White-Wash Protection**: Prevents "graying out" in bright scenes, maintaining vibrant hues.
+## 🏛️ Features
+- **Triple-Fallback Pipeline**: Automatic selection of NVIDIA (NVMM), Intel/AMD (VA-API), or Software rendering.
+- **Perceptual Color Engine**: Uses Oklab color space for fluid, natural lighting transitions.
+- **Sovereign Architecture**: Standalone binary with no external daemon dependencies.
+- **Wayland Native**: Designed specifically for modern Wayland sessions (GNOME/KDE).
 
 ## 🚀 Installation (Arch Linux)
-
-Requires `asusctl` to be installed and running.
-
+The easiest way is via the AUR:
 ```bash
-# Install dependencies
-sudo pacman -S gstreamer gst-plugins-base gst-plugins-good gst-plugin-pipewire
+yay -S aero-sync-git
+```
 
-# Build the project
-cargo build --release
+## 🛠️ Usage
 
-# Run the engine
-./target/release/aero-sync
+### Manual Start
+To start the synchronization engine manually:
+```bash
+aero-sync
+```
+
+### Background Service (Recommended)
+Aero-Sync includes a Systemd user service for seamless background operation.
+
+**To start it now:**
+```bash
+systemctl --user enable --now aero-sync
+```
+
+**To stop it:**
+```bash
+systemctl --user stop aero-sync
 ```
 
 ## 🛡️ License
+Distributed under the MIT License. See `LICENSE` for more information.
 
-Built for the Arch Linux Community by **aero**. Inspired by the vision of Absolute Perfection.
+## 🤝 Acknowledgments
+- Inspired by the ASUS Linux community.
+- Built with GStreamer and ASHPD.
