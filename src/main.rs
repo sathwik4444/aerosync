@@ -134,15 +134,21 @@ async fn main() -> Result<()> {
         }
     });
 
-    // --- GPU SENSITIVE PIPELINE ---
-    let has_nvidia = std::path::Path::new("/dev/nvidia0").exists();
-    let pipeline_str = if has_nvidia {
-        format!("pipewiresrc fd={} path={} ! nvvideoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node)
-    } else {
-        format!("pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node)
+    // --- HYPER-ADAPTIVE PIPELINE ---
+    let nvd_str = format!("pipewiresrc fd={} path={} ! nvvideoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
+    let cpu_str = format!("pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
+
+    let pipeline = match gst::parse::launch(&nvd_str) {
+        Ok(p) => {
+            println!("🔱 Titan GPU Acceleration ENGAGED.");
+            p
+        },
+        Err(_) => {
+            println!("🕊️ Falling back to Integrated Processing.");
+            gst::parse::launch(&cpu_str).context("Critical GStreamer Failure")?
+        }
     };
 
-    let pipeline = gst::parse::launch(&pipeline_str)?;
     let bin = pipeline.clone().dynamic_cast::<gst::Bin>().unwrap();
     let sink = bin.by_name("sink").unwrap().dynamic_cast::<gst_app::AppSink>().unwrap();
     let _ = pipeline.set_state(gst::State::Playing);
