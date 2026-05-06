@@ -1,4 +1,8 @@
 # Aero-Sync 🏎️🛡️
+![Arch Linux](https://img.shields.io/badge/Arch%20Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
+![AUR Package](https://img.shields.io/aur/version/aero-sync-git?style=for-the-badge&color=blue&label=AUR)
+![License](https://img.shields.io/github/license/sathwik4444/aerosync?style=for-the-badge&color=green)
 
 **Sovereign RGB Synchronization for ASUS TUF/ROG Laptops.**
 
@@ -43,7 +47,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ## 🤝 Acknowledgments
 - Inspired by the ASUS Linux community.
 - Built with GStreamer and ASHPD.
-![Arch Linux](https://img.shields.io/badge/Arch%20Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white)
-![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
-![AUR Package](https://img.shields.io/aur/version/aero-sync-git?style=for-the-badge&color=blue&label=AUR)
-![License](https://img.shields.io/github/license/sathwik4444/aerosync?style=for-the-badge&color=green)
+
