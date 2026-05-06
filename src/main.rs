@@ -1,5 +1,5 @@
-//! Aero-Sync — The "Immortal" RGB Engine Standalone 🏛️💎🏎️
-//! Ported from the Aero-Daemon for the Arch Linux Community.
+//! Aero-Sync — The Sovereign RGB Engine 🏛️🛰️🦾
+//! Universal "Plug-and-Play" Architecture for the Arch Linux Community.
 
 use anyhow::{Context, Result};
 use ashpd::desktop::screencast::{
@@ -18,11 +18,10 @@ use std::time::{Duration, Instant};
 use tokio::time;
 use zbus::proxy;
 
-// ─── ASUS AURA PROXY ──────────────────────────────────────────────────────────
+// ─── UNIVERSAL ASUS AURA PROXY ───────────────────────────────────────────────
 
 #[proxy(
     default_service = "xyz.ljones.Asusd",
-    default_path = "/xyz/ljones/aura/tuf",
     interface = "xyz.ljones.Aura"
 )]
 pub trait AsusAura {
@@ -69,24 +68,53 @@ impl AtomicColor {
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("╔══════════════════════════════════════════╗");
-    println!("║     Aero-Sync v1.0.0 Standalone 🏛️      ║");
-    println!("║     The Immortal RGB Engine 💎         ║");
+    println!("║     Aero-Sync v1.1.0 Sovereign 🏛️        ║");
+    println!("║     Universal ASUS RGB Master          ║");
     println!("╚══════════════════════════════════════════╝");
 
-    let conn = zbus::Connection::system().await?;
-    let aura = AsusAuraProxy::new(&conn).await?;
+    // --- 🔍 STEP 1: HARDWARE DISCOVERY (THE HUNT) ---
+    println!("🔍 Probing ASUS Hardware...");
+    let conn = zbus::Connection::system().await.context("Cannot connect to System Bus (asusd required)")?;
     
-    gst::init()?;
+    let aura_paths = vec!["/xyz/ljones/aura/tuf", "/xyz/ljones/aura/rog", "/xyz/ljones/aura/aura"];
+    let mut active_aura = None;
 
+    for path in aura_paths {
+        if let Ok(proxy) = AsusAuraProxy::builder(&conn).path(path)?.build().await {
+            if proxy.brightness().await.is_ok() {
+                println!("✅ Found ASUS Controller: {}", path);
+                active_aura = Some(proxy);
+                break;
+            }
+        }
+    }
+
+    let aura = active_aura.context("❌ NO ASUS KEYBOARD DETECTED. Make sure asusctl is running.")?;
+    
+    // --- 🩺 STEP 2: INTEGRITY CHECK ---
+    gst::init()?;
+    let required_elements = vec!["pipewiresrc", "videoconvert", "appsink"];
+    for el in required_elements {
+        if gst::ElementFactory::find(el).is_none() {
+            println!("❌ MISSING DEPENDENCY: {}", el);
+            println!("   Please install 'gst-plugin-pipewire' and 'gst-plugins-base'.");
+            return Ok(());
+        }
+    }
+
+    // --- 🛰️ STEP 3: WAYLAND HANDSHAKE ---
     let screencast = Screencast::new().await?;
     let session = screencast.create_session(Default::default()).await?;
     
-    let token_path = "/tmp/aero_sync_token";
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    let token_path = format!("{}/.cache/aero_sync_token", home);
+    let _ = fs::create_dir_all(format!("{}/.cache", home));
+
     let mut select_options = SelectSourcesOptions::default()
         .set_cursor_mode(CursorMode::Hidden)
         .set_persist_mode(PersistMode::ExplicitlyRevoked);
     
-    if let Ok(t) = fs::read_to_string(token_path) { 
+    if let Ok(t) = fs::read_to_string(&token_path) { 
         select_options = select_options.set_restore_token(Some(t.as_str()));
     }
     
@@ -96,7 +124,7 @@ async fn main() -> Result<()> {
     let start_data = start_response.response()?;
     
     if let Some(token) = start_data.restore_token() {
-        let _ = fs::write(token_path, token);
+        let _ = fs::write(&token_path, token);
     }
     
     let stream_node = start_data.streams().first().context("No streams")?.pipe_wire_node_id();
@@ -109,6 +137,7 @@ async fn main() -> Result<()> {
     let beat_aura = aura.clone();
     let beat_moving = Arc::clone(&is_moving);
 
+    // --- 💓 HEARTBEAT SMOOTHING ---
     tokio::spawn(async move {
         let mut cr = 0u32; let mut cg = 0u32; let mut cb = 0u32;
         let mut last_kb_color = (0u8, 0u8, 0u8);
@@ -124,7 +153,7 @@ async fn main() -> Result<()> {
             cb = ((cb * 218) + (tb * 38)) >> 8;
             
             let r_u8 = cr as u8; let g_u8 = cg as u8; let b_u8 = cb as u8;
-            if (r_u8 as i16 - last_kb_color.0 as i16).abs() > 2 || (g_u8 as i16 - last_kb_color.1 as i16).abs() > 2 || (b_u8 as i16 - last_kb_color.2 as i16).abs() > 2 {
+            if (r_u8 as i16 - last_kb_color.0 as i16).abs() > 1 || (g_u8 as i16 - last_kb_color.1 as i16).abs() > 1 || (b_u8 as i16 - last_kb_color.2 as i16).abs() > 1 {
                 let out = (r_u8, g_u8, b_u8);
                 let _ = beat_aura.set_led_mode_data((0, 0, out, out, "Med".to_string(), "Right".to_string())).await;
                 last_kb_color = out;
@@ -134,20 +163,32 @@ async fn main() -> Result<()> {
         }
     });
 
-    // --- HYPER-ADAPTIVE PIPELINE ---
+    // --- 🏎️ TRIPLE-FALLBACK PIPELINE (Universal) ---
     let nvd_str = format!("pipewiresrc fd={} path={} ! nvvideoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
-    let cpu_str = format!("pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
+    let intel_str = format!("pipewiresrc fd={} path={} ! vapostproc ! video/x-raw,width=16,height=16 ! videoconvert ! video/x-raw,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
+    let soft_str = format!("pipewiresrc fd={} path={} ! videoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
 
-    let pipeline = match gst::parse::launch(&nvd_str) {
-        Ok(p) => {
-            println!("🔱 Titan GPU Acceleration ENGAGED.");
-            p
-        },
-        Err(_) => {
-            println!("🕊️ Falling back to Integrated Processing.");
-            gst::parse::launch(&cpu_str).context("Critical GStreamer Failure")?
-        }
+    let pipeline = if let Ok(p) = gst::parse::launch(&nvd_str) {
+        println!("🔱 Titan GPU Acceleration ENGAGED.");
+        p
+    } else if let Ok(p) = gst::parse::launch(&intel_str) {
+        println!("🕊️ Phoenix VA-API Acceleration ENGAGED.");
+        p
+    } else {
+        println!("🕯️ Software Fallback ACTIVE (Universal Mode).");
+        gst::parse::launch(&soft_str).context("Critical GStreamer Failure")?
     };
+
+    let bus = pipeline.bus().unwrap();
+    tokio::spawn(async move {
+        for msg in bus.iter_timed(gst::ClockTime::NONE) {
+            use gst::MessageView;
+            match msg.view() {
+                MessageView::Error(err) => { eprintln!("❌ GStreamer Error: {}", err.error()); }
+                _ => (),
+            }
+        }
+    });
 
     let bin = pipeline.clone().dynamic_cast::<gst::Bin>().unwrap();
     let sink = bin.by_name("sink").unwrap().dynamic_cast::<gst_app::AppSink>().unwrap();
