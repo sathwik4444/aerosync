@@ -1,6 +1,5 @@
 # --- 📦 RUST TRASH ---
 /target
-Cargo.lock
 
 # --- 🧪 TEMP DATA ---
 *.log
