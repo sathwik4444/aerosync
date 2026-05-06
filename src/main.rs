@@ -1,5 +1,5 @@
-//! Aero-Sync — The Sovereign RGB Engine 🏛️🛰️🦾
-//! Universal "Plug-and-Play" Architecture for the Arch Linux Community.
+//! Aero-Sync — Universal ASUS RGB Engine 
+//! Professional Distribution Version v1.1.0
 
 use anyhow::{Context, Result};
 use ashpd::desktop::screencast::{
@@ -70,37 +70,37 @@ impl AtomicColor {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("╔══════════════════════════════════════════╗");
-    println!("║     Aero-Sync v1.1.0 Sovereign 🏛️        ║");
-    println!("║     Universal ASUS RGB Master          ║");
-    println!("╚══════════════════════════════════════════╝");
+    println!("--------------------------------------------");
+    println!("   AERO-SYNC: UNIVERSAL ASUS RGB ENGINE     ");
+    println!("   Version 1.1.0 - Sovereign Distribution   ");
+    println!("--------------------------------------------");
 
-    // --- 🔍 STEP 1: HARDWARE DISCOVERY ---
-    let conn = zbus::Connection::system().await.context("Cannot connect to System Bus (asusd required)")?;
+    // --- STEP 1: HARDWARE DISCOVERY ---
+    let conn = zbus::Connection::system().await.context("Failed to connect to system bus")?;
     let aura_paths = vec!["/xyz/ljones/aura/tuf", "/xyz/ljones/aura/rog", "/xyz/ljones/aura/aura"];
     let mut active_aura = None;
 
     for path in aura_paths {
         if let Ok(proxy) = AsusAuraProxy::builder(&conn).path(path)?.build().await {
             if proxy.brightness().await.is_ok() {
-                println!("✅ Found ASUS Controller: {}", path);
+                println!("[INFO] Found ASUS Aura controller at {}", path);
                 active_aura = Some(proxy);
                 break;
             }
         }
     }
 
-    let aura = active_aura.context("❌ NO ASUS KEYBOARD DETECTED. Make sure asusctl is running.")?;
+    let aura = active_aura.context("[ERROR] No compatible ASUS controller found")?;
     
-    // --- 🩺 STEP 2: INTEGRITY CHECK ---
+    // --- STEP 2: INTEGRITY CHECK ---
     gst::init()?;
     for el in ["pipewiresrc", "videoconvert", "appsink", "vapostproc", "videoscale"] {
         if gst::ElementFactory::find(el).is_none() {
-            println!("⚠️ Warning: GStreamer element '{}' missing. Fallback performance may be reduced.", el);
+            println!("[WARN] GStreamer element '{}' not found", el);
         }
     }
 
-    // --- 🛰️ STEP 3: WAYLAND HANDSHAKE ---
+    // --- STEP 3: WAYLAND HANDSHAKE ---
     let screencast = Screencast::new().await?;
     let session = screencast.create_session(Default::default()).await?;
     
@@ -116,7 +116,7 @@ async fn main() -> Result<()> {
         select_options = select_options.set_restore_token(Some(t.as_str()));
     }
     
-    println!("📡 Handshaking with Wayland Portal...");
+    println!("[INFO] Initializing Wayland screen-cast session...");
     let _ = screencast.select_sources(&session, select_options).await?;
     let start_response = screencast.start(&session, None, StartCastOptions::default()).await?;
     let start_data = start_response.response()?;
@@ -125,7 +125,7 @@ async fn main() -> Result<()> {
         let _ = fs::write(&token_path, token);
     }
     
-    let stream_node = start_data.streams().first().context("No streams")?.pipe_wire_node_id();
+    let stream_node = start_data.streams().first().context("[ERROR] Failed to obtain stream node")?.pipe_wire_node_id();
     let fd = screencast.open_pipe_wire_remote(&session, OpenPipeWireRemoteOptions::default()).await?;
 
     let is_moving = Arc::new(AtomicBool::new(true));
@@ -137,7 +137,7 @@ async fn main() -> Result<()> {
     let beat_moving = Arc::clone(&is_moving);
     let beat_shutdown = Arc::clone(&shutdown);
 
-    // --- 💓 HEARTBEAT SMOOTHING ---
+    // --- HEARTBEAT SMOOTHING ---
     tokio::spawn(async move {
         let mut cr = 0u32; let mut cg = 0u32; let mut cb = 0u32;
         let mut last_kb_color = (0u8, 0u8, 0u8);
@@ -148,7 +148,6 @@ async fn main() -> Result<()> {
             let (sr, sg, sb) = beat_color.load();
             let (tr, tg, tb) = (sr as u32, sg as u32, sb as u32);
             
-            // Exponential Smoothing (Silk-Flow 2.0)
             cr = ((cr * 210) + (tr * 46)) >> 8;
             cg = ((cg * 210) + (tg * 46)) >> 8;
             cb = ((cb * 210) + (tb * 46)) >> 8;
@@ -163,25 +162,25 @@ async fn main() -> Result<()> {
         }
     });
 
-    // --- 🏎️ TRIPLE-FALLBACK PIPELINE ---
+    // --- MULTI-TARGET PIPELINE ---
     let nvd_str = format!("pipewiresrc fd={} path={} ! nvvideoconvert ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
     let va_str = format!("pipewiresrc fd={} path={} ! vapostproc ! video/x-raw,width=16,height=16 ! videoconvert ! video/x-raw,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
     let sw_str = format!("pipewiresrc fd={} path={} ! videoconvert ! videoscale ! video/x-raw,width=16,height=16,format=RGB ! appsink name=sink sync=false drop=true max-buffers=1", fd.as_raw_fd(), stream_node);
 
     let pipeline = if let Ok(p) = gst::parse::launch(&nvd_str) {
-        println!("🔱 Titan GPU Acceleration ENGAGED."); p
+        println!("[INFO] Target acceleration: NVIDIA/NVMM"); p
     } else if let Ok(p) = gst::parse::launch(&va_str) {
-        println!("🕊️ Phoenix VA-API Acceleration ENGAGED."); p
+        println!("[INFO] Target acceleration: VA-API"); p
     } else {
-        println!("🕯️ Software Fallback ACTIVE (Universal Mode).");
-        gst::parse::launch(&sw_str).context("Critical GStreamer Failure")?
+        println!("[INFO] Target acceleration: Software (Fallback)");
+        gst::parse::launch(&sw_str).context("[ERROR] Pipeline initialization failed")?
     };
 
     let bin = pipeline.clone().dynamic_cast::<gst::Bin>().unwrap();
     let sink = bin.by_name("sink").unwrap().dynamic_cast::<gst_app::AppSink>().unwrap();
     let _ = pipeline.set_state(gst::State::Playing);
 
-    println!("🏎️ Zero-Wattage Engine ACTIVE. Syncing...");
+    println!("[INFO] RGB synchronization active");
 
     let mut last_tc = (0u8, 0u8, 0u8);
     let mut idle_frames = 0u32;
@@ -212,10 +211,9 @@ async fn main() -> Result<()> {
             }
         } => {},
         _ = signal::ctrl_c() => {
-            println!("\n🏛️ Shutting down gracefully...");
+            println!("\n[INFO] Shutdown signal received: Reseting state");
             shutdown.store(true, Ordering::SeqCst);
             let _ = pipeline.set_state(gst::State::Null);
-            // Reset to static white or off to confirm shutdown
             let _ = s_aura.set_led_mode_data((0, 0, (255,255,255), (255,255,255), "Med".to_string(), "Right".to_string())).await;
         }
     }
@@ -238,7 +236,6 @@ fn get_perceptual_color(raw: &[u8]) -> (u8, u8, u8) {
 
     let r_avg = r_lin / n; let g_avg = g_lin / n; let b_avg = b_lin / n;
 
-    // LMS -> Oklab
     let l = 0.81893 * r_avg + 0.36186 * g_avg - 0.12885 * b_avg;
     let m = 0.03298 * r_avg + 0.92931 * g_avg + 0.03614 * b_avg;
     let s = 0.04820 * r_avg + 0.26436 * g_avg + 0.63385 * b_avg;
@@ -249,20 +246,17 @@ fn get_perceptual_color(raw: &[u8]) -> (u8, u8, u8) {
     let mut lab_a = 1.97799 * l_ - 2.42859 * m_ + 0.45059 * s_;
     let mut lab_b = 0.02590 * l_ + 0.78277 * m_ - 0.80867 * s_;
 
-    // Chroma Boost
     let chroma = (lab_a * lab_a + lab_b * lab_b).sqrt();
     if chroma > 0.0 {
         let scale = (0.2 / (chroma + 0.01)).min(1.8) + 1.1;
         lab_a *= scale; lab_b *= scale;
     }
 
-    // White-Wash Correction
     if lab_l > 0.7 && chroma < 0.05 {
         if r_avg > g_avg && r_avg > b_avg { lab_a += 0.1; }
         else if b_avg > r_avg && b_avg > g_avg { lab_b -= 0.1; }
     }
 
-    // Back to Linear RGB
     let l_back = lab_l + 0.3963 * lab_a + 0.2158 * lab_b;
     let m_back = lab_l - 0.1055 * lab_a - 0.0638 * lab_b;
     let s_back = lab_l - 0.0894 * lab_a - 1.2914 * lab_b;
