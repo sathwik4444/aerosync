@@ -44,6 +44,13 @@ systemctl --user stop aero-sync
 ## 🛡️ License
 Distributed under the MIT License. See `LICENSE` for more information.
 
+## Requirements
+
+Aero-Sync currently relies on the ASUS Linux ecosystem and requires ASUS Aura support available through tools/interfaces such as `asusctl`.
+
+At the moment, the project has mainly been tested on an ASUS TUF F15 (single-zone RGB keyboard) running Arch Linux + Wayland.
+
+
 ## 🤝 Acknowledgments
 - Inspired by the ASUS Linux community.
 - Built with GStreamer and ASHPD.
