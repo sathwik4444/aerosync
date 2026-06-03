@@ -3,7 +3,7 @@ name = "aero-sync"
 version = "1.0.0"
 edition = "2021"
 authors = ["aero"]
-description = "Zero-Wattage Oklab RGB Screen Synchronization for ASUS TUF Laptops"
+description = "real-time Low-latency screen-to-keyboard RGB synchronization for ASUS TUF and ROG laptops"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
