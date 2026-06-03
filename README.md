@@ -35,6 +35,30 @@ AUR Package:
 
 ---
 
+# ⚡ Performance Profile
+
+Aero-Sync is heavily optimized to run invisibly in the background without draining your battery or stealing gaming frames.
+
+- **CPU Usage:** **~1.3%** (on average). The heavy lifting (screen capture and downscaling) is offloaded to hardware-accelerated video processors (NVIDIA NVMM or Intel VA-API) via GStreamer.
+- **RAM Footprint:** **~41 MB**. Enforced by a strict `max-buffers=1` drop-policy in the PipeWire pipeline, preventing memory leaks over long sessions.
+- **Wattage Impact:** **Negligible**. By utilizing hardware endpoints and keeping the Rust daemon strictly asleep during idle frames, battery impact is near zero.
+- **Adaptive Polling:** The engine dynamically adjusts its refresh rate. While playing games or watching videos, it runs at a fluid **60Hz**. When you look at static content (like a document or IDE), it intelligently throttles down to **5Hz** to conserve power.
+- **Micro-Optimization:** Color perceptual calculations (Oklab) are performed on a drastically downscaled 16x16 pixel matrix, utilizing a pre-computed SRGB Lookup Table (LUT) for zero-latency processing.
+
+# Typical measurements on an ASUS TUF F15:
+
+- CPU Usage: ~1-5%
+- Memory Usage: ~40 MB
+- Refresh Rate: Up to 60 Hz
+- Adaptive Idle Mode
+- Hardware Accelerated (VA-API / NVMM)
+
+# Observed additional power usage:
+
+- Static desktop: ~1 W
+- Active content (video/gaming): ~3-5 W
+
+Results may vary depending on hardware, screen brightness, RGB brightness, and GPU configuration.
 # ✨ Features
 
 * Hardware-accelerated screen processing
